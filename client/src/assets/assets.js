@@ -131,8 +131,8 @@ export const dummyPostsData = [
         ],
         "post_type": "text_with_image",
         "likes_count": [],
-        "createdAt": "2025-07-16T05:54:31.191Z",
-        "updatedAt": "2025-07-16T05:54:31.191Z",
+        "createdAt": "2025-11-01T05:54:31.191Z",
+        "updatedAt": "2025-11-01T05:54:31.191Z",
     },
     {
         "_id": "686e6d0407845749500c24cd",
@@ -141,8 +141,8 @@ export const dummyPostsData = [
         "image_urls": [],
         "post_type": "text",
         "likes_count": [],
-        "createdAt": "2025-07-09T13:22:12.601Z",
-        "updatedAt": "2025-07-09T13:22:12.601Z",
+        "createdAt": "2025-10-31T13:22:12.601Z",
+        "updatedAt": "2025-10-31T13:22:12.601Z",
     },
     {
         "_id": "686e6b21de877d29cf02e2a7",
@@ -151,8 +151,8 @@ export const dummyPostsData = [
         "image_urls": [],
         "post_type": "text",
         "likes_count": [],
-        "createdAt": "2025-07-09T13:14:09.144Z",
-        "updatedAt": "2025-07-09T13:14:09.144Z",
+        "createdAt": "2025-11-01T13:14:09.144Z",
+        "updatedAt": "2025-11-01T13:14:09.144Z",
     },
     {
         "_id": "686e3e47ba0cf0fecba19947",
@@ -165,8 +165,8 @@ export const dummyPostsData = [
         "likes_count": [
             "user_2zdJbcAqiOX9jq2DIueBRQn0lMt"
         ],
-        "createdAt": "2025-07-09T10:02:47.213Z",
-        "updatedAt": "2025-07-09T10:09:37.075Z",
+        "createdAt": "2025-11-01T10:02:47.213Z",
+        "updatedAt": "2025-11-01T10:09:37.075Z",
     },
     {
         "_id": "686e39e86e0585e9e2e58dd3",
@@ -177,8 +177,8 @@ export const dummyPostsData = [
         ],
         "post_type": "text_with_image",
         "likes_count": [],
-        "createdAt": "2025-07-09T09:44:08.626Z",
-        "updatedAt": "2025-07-09T09:44:08.626Z",
+        "createdAt": "2025-09-30T09:44:08.626Z",
+        "updatedAt": "2025-09-07T09:44:08.626Z",
     },
     {
         "_id": "686e361389841ba9f2633201",
