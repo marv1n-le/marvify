@@ -2,13 +2,15 @@ import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import { Menu, X } from "lucide-react";
 import { dummyUserData } from "../assets/assets";
+import { Outlet } from "react-router-dom";
+import Loading from "../components/Loading";
 
 const Layout = () => {
   const user = dummyUserData
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return user ? (
     <div className="w-full flex h-screen">
-      <Sidebar />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <div className="flex-1 bg-slate-50">
         {/* Outlet for nested routes */}
         <Outlet />
@@ -26,7 +28,7 @@ const Layout = () => {
       )}
     </div>
   ) : (
-    <h1>Loading...</h1>
+    <Loading />
   );
 };
 
