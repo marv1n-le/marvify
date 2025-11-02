@@ -18,7 +18,7 @@ const Messages = () => {
           {dummyConnectionsData.map((user) => (
             <div
               key={user._id}
-              className="max-w-xl flex flex-warp gap-5 p-6 bg-white shadow rounded-md"
+              className="max-w-xl flex flex-wrap gap-5 p-6 bg-white shadow rounded-md"
             >
               <img
                 src={user.profile_picture}

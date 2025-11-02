@@ -54,7 +54,7 @@ const Connections = () => {
         </div>
 
         {/* Counts */}
-        <div className="mb-8 flex flex-warp gap-6">
+        <div className="mb-8 flex flex-wrap gap-6">
           {dataArray.map((item, index) => (
             <div
               key={index}
@@ -67,7 +67,7 @@ const Connections = () => {
         </div>
 
         {/* Tabs */}
-        <div className="inline-flex flex-warp items-center border border-gray-200 rounded-md p-1 bg-white shadow-sm">
+        <div className="inline-flex flex-wrap items-center border border-gray-200 rounded-md p-1 bg-white shadow-sm">
           {dataArray.map((tab) => (
             <button
               onClick={() => setCurrentTab(tab.label)}
@@ -89,7 +89,7 @@ const Connections = () => {
           ))}
         </div>
         {/* Connections */}
-        <div className="flex flex-warp gap-6 mt-6">
+        <div className="flex flex-wrap gap-6 mt-6">
           {dataArray
             .find((item) => item.label === currentTab)
             ?.value.map((user) => (
