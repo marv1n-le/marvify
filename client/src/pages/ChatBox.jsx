@@ -86,7 +86,9 @@ const ChatBox = () => {
               />
             </label>
 
-            <button>
+            <button
+            className='bg-linear-to-br from-indigo-500 to-purple-600 p-2 rounded-full hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer text-white'
+            >
               <SendHorizonal size={18} />
             </button>
           </div>
