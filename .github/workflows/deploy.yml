@@ -22,24 +22,42 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          set -e  # dừng khi có lỗi
           cd /var/www/marvify
 
           echo "🧠 Pull latest code..."
           git reset --hard
           git pull origin main
 
+          echo "🔧 Load Node.js environment..."
+          # nếu bạn dùng nvm thì load nvm (an toàn, không lỗi nếu không có)
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            source "$HOME/.nvm/nvm.sh"
+            nvm use 20 || nvm use default || true
+          fi
+
           echo "🚀 Backend: install & restart..."
           cd server
-          npm install
-          pm2 restart all || pm2 start server.js --name marvify_be
+          if ! command -v npm &> /dev/null; then
+            echo "❌ npm not found — please ensure Node.js is installed"
+            exit 1
+          fi
+          npm install --omit=dev
+          if command -v pm2 &> /dev/null; then
+            pm2 restart marvify_be || pm2 start server.js --name marvify_be
+          else
+            echo "⚠️ pm2 not found — installing..."
+            npm install -g pm2
+            pm2 start server.js --name marvify_be
+          fi
 
           echo "🎨 Frontend: build & reload..."
           cd ../client
-          npm install
+          npm install --omit=dev
           npm run build
 
-          # Restart Nginx container
-          docker restart marvify_static || \
+          echo "🌐 Restart Nginx container..."
+          docker ps -a --format '{{.Names}}' | grep -q marvify_static && docker restart marvify_static || \
             docker run -d --name marvify_static \
               -v /var/www/marvify/client/dist:/usr/share/nginx/html \
               -p 8083:80 nginx:alpine
