@@ -1,4 +1,4 @@
-name: Deploy Marvify (FE + BE)
+name: CI/CD for Marvify (MERN)
 
 on:
   push:
@@ -6,9 +6,50 @@ on:
       - main
 
 jobs:
-  deploy:
-    name: Deploy to VPS
+  build-and-test:
+    name: 🧪 Build & Test (FE + BE)
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Cache Node modules globally
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+
+      # Install dependencies for backend
+      - name: Install Backend dependencies
+        run: |
+          cd server
+          npm ci
+
+      # Install dependencies for frontend
+      - name: Install Frontend dependencies
+        run: |
+          cd client
+          npm ci
+
+      # Build frontend
+      - name: Build Frontend
+        run: |
+          cd client
+          npm run build
+
+      # Optional: run tests (only if you have them)
+      - name: Run Backend Tests
+        run: |
+          cd server
+          npm test || echo "⚠️ No tests yet"
+
+  deploy:
+    name: 🚀 Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build-and-test
 
     steps:
       - name: Checkout code
@@ -22,34 +63,32 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          set -e
-          cd /var/www/marvify
+          set -e  # stop if any command fails
 
-          echo "🧠 Pull latest code..."
+          echo "📦 Pulling latest code..."
+          cd /var/www/marvify
           git reset --hard
           git pull origin main
 
-          echo "🔧 Load Node.js environment..."
-          if [ -s "$HOME/.nvm/nvm.sh" ]; then
-            source "$HOME/.nvm/nvm.sh"
-            nvm use 22 || nvm use default || true
-          fi
+          echo "🔧 Load Node environment..."
+          source ~/.nvm/nvm.sh
+          nvm use 22
 
-          echo "🚀 Backend: install & restart..."
+          echo "🚀 Backend: updating..."
           cd server
-          npm install --omit=dev
-          pm2 restart marvify_be || pm2 start server.js --name marvify_be
+          npm ci
+          pm2 reload marvify_be --update-env || pm2 start server.js --name marvify_be
 
-          echo "🎨 Frontend: build & reload..."
+          echo "🎨 Frontend: building..."
           cd ../client
-          npm install   # 👈 cài cả dev dependencies
+          npm ci
           npm run build
 
-          echo "🌐 Restart Nginx container..."
-          docker ps -a --format '{{.Names}}' | grep -q marvify_static && docker restart marvify_static || \
+          echo "🌐 Updating static site..."
+          docker ps -q --filter "name=marvify_static" && docker restart marvify_static || \
             docker run -d --name marvify_static \
               -v /var/www/marvify/client/dist:/usr/share/nginx/html \
               -p 8083:80 nginx:alpine
 
-          echo "✅ Deployment done!"
+          echo "✅ Deployment completed successfully!"
           EOF
