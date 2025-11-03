@@ -1,0 +1,71 @@
+# ===== Node.js =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ===== Environment Files =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ===== Build Output =====
+dist/
+build/
+coverage/
+
+# ===== Logs =====
+logs/
+*.log
+*.log.*
+debug.log
+error.log
+
+# ===== OS / Editor =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ===== Temporary / Cache =====
+tmp/
+temp/
+.cache/
+.nyc_output/
+*.pid
+*.seed
+*.pid.lock
+
+# ===== React Specific =====
+# Ignore React build output (if using create-react-app)
+client/build/
+
+# ===== Server Specific =====
+# Ignore compiled code (if using TypeScript)
+server/dist/
+server/build/
+
+# ===== Test / Misc =====
+__pycache__/
+*.tsbuildinfo
+*.tgz
+
+# ===== Uploads or Private Files =====
+uploads/
+public/uploads/
+*.pem
+*.key
+*.crt
+*.p12
+
+# ===== Docker =====
+docker-compose.override.yml
+.docker/
