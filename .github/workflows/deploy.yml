@@ -72,7 +72,7 @@ jobs:
           echo "🚀 Backend: updating..."
           cd server
           npm ci
-          pm2 reload marvify_be --update-env || pm2 start server.js --name marvify_be
+          pm2 reload marvify-server --update-env || pm2 start server.js --name marvify-server
 
           echo "🎨 Frontend: building..."
           cd ../client
