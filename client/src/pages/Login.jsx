@@ -48,6 +48,7 @@ const Login = () => {
       {/* Right-side: Login Form */}
       <div className="flex flex-1 items-center justify-center p-6 sm:p-10">
         <SignIn />
+        <p>this is a test</p>
       </div>
     </div>
   );
