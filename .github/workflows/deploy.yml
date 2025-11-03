@@ -14,50 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Cache riêng cho server và client
-      - name: Cache server node modules
+      # Cache Node modules globally
+      - name: Cache Node modules
         uses: actions/cache@v3
         with:
-          path: server/node_modules
-          key: ${{ runner.os }}-server-node-${{ hashFiles('server/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-server-node-
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
 
-      - name: Cache client node modules
-        uses: actions/cache@v3
-        with:
-          path: client/node_modules
-          key: ${{ runner.os }}-client-node-${{ hashFiles('client/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-client-node-
-
-      # Kiểm tra package-lock.json trước
-      - name: Check package-lock.json exists
-        run: |
-          echo "📁 Checking package-lock.json files..."
-          ls -la server/package-lock.json || echo "❌ Server package-lock.json missing"
-          ls -la client/package-lock.json || echo "❌ Client package-lock.json missing"
-
-      # Install dependencies với fallback
+      # Install dependencies for backend
       - name: Install Backend dependencies
         run: |
           cd server
-          if [ -f "package-lock.json" ]; then
-            echo "📦 Using npm ci for server..."
-            npm ci
-          else
-            echo "⚠️ package-lock.json not found, using npm install..."
-            npm install
-          fi
+          npm ci
 
+      # Install dependencies for frontend
       - name: Install Frontend dependencies
         run: |
           cd client
-          if [ -f "package-lock.json" ]; then
-            echo "📦 Using npm ci for client..."
-            npm ci
-          else
-            echo "⚠️ package-lock.json not found, using npm install..."
-            npm install
-          fi
+          npm ci
 
       # Build frontend
       - name: Build Frontend
@@ -65,7 +40,7 @@ jobs:
           cd client
           npm run build
 
-      # Optional: run tests
+      # Optional: run tests (only if you have them)
       - name: Run Backend Tests
         run: |
           cd server
@@ -88,7 +63,7 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          set -e
+          set -e  # stop if any command fails
 
           echo "📦 Pulling latest code..."
           cd /var/www/marvify
@@ -101,21 +76,12 @@ jobs:
 
           echo "🚀 Backend: updating..."
           cd server
-          # Kiểm tra và install
-          if [ -f "package-lock.json" ]; then
-            npm ci
-          else
-            npm install
-          fi
+          npm ci
           pm2 reload marvify_be --update-env || pm2 start server.js --name marvify_be
 
           echo "🎨 Frontend: building..."
           cd ../client
-          if [ -f "package-lock.json" ]; then
-            npm ci
-          else
-            npm install
-          fi
+          npm ci
           npm run build
 
           echo "🌐 Updating static site..."
