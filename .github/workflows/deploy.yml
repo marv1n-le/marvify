@@ -1,0 +1,48 @@
+name: Deploy Marvify (FE + BE)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          cd /var/www/marvify
+
+          echo "🧠 Pull latest code..."
+          git reset --hard
+          git pull origin main
+
+          echo "🚀 Backend: install & restart..."
+          cd server
+          npm install
+          pm2 restart all || pm2 start server.js --name marvify_be
+
+          echo "🎨 Frontend: build & reload..."
+          cd ../client
+          npm install
+          npm run build
+
+          # Restart Nginx container
+          docker restart marvify_static || \
+            docker run -d --name marvify_static \
+              -v /var/www/marvify/client/dist:/usr/share/nginx/html \
+              -p 8083:80 nginx:alpine
+
+          echo "✅ Deployment done!"
+          EOF
