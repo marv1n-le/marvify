@@ -14,6 +14,7 @@ const ChatBox = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  
   return (
     user && (
       <div className="flex flex-col h-screen">
@@ -74,9 +75,11 @@ const ChatBox = () => {
               value={text}
             />
             <label htmlFor="image">
-              {
-                image ? <img src={URL.createObjectURL(image)} /> : <ImageIcon className="size-7 text-gray-400 cursor-pointer" />
-              }
+              {image ? (
+                <img src={URL.createObjectURL(image)} />
+              ) : (
+                <ImageIcon className="size-7 text-gray-400 cursor-pointer" />
+              )}
               <input
                 type="file"
                 id="image"
@@ -87,7 +90,8 @@ const ChatBox = () => {
             </label>
 
             <button
-            className='bg-linear-to-br from-indigo-500 to-purple-600 p-2 rounded-full hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer text-white'
+              onClick={sendMessage}
+              className="bg-linear-to-br from-indigo-500 to-purple-600 p-2 rounded-full hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer text-white"
             >
               <SendHorizonal size={18} />
             </button>
