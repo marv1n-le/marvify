@@ -1,5 +1,5 @@
-import imagekit from "../configs/imageKit";
-import User from "../models/User";
+import imagekit from "../configs/imagekit.js";
+import User from "../models/User.js";
 import fs from "fs";
 
 // Get user data
@@ -137,7 +137,7 @@ export const followUser = async (req, res) => {
 }
 
 // Unfollow user
-export const unfollowUser = aysnc (req, res) => {
+export const unfollowUser = async (req, res) => {
   try {
     const { userId } = req.auth();
     const { id } = req.body;
@@ -150,7 +150,7 @@ export const unfollowUser = aysnc (req, res) => {
     toUser.followers = toUser.followers.filter(user => user !== userId);
     await toUser.save();
     res.status(200).json({ success: true, message: "Unfollowed the user successfully" });
-    
+
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
