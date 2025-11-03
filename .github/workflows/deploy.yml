@@ -22,7 +22,7 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          set -e  # dừng khi có lỗi
+          set -e
           cd /var/www/marvify
 
           echo "🧠 Pull latest code..."
@@ -30,30 +30,19 @@ jobs:
           git pull origin main
 
           echo "🔧 Load Node.js environment..."
-          # nếu bạn dùng nvm thì load nvm (an toàn, không lỗi nếu không có)
           if [ -s "$HOME/.nvm/nvm.sh" ]; then
             source "$HOME/.nvm/nvm.sh"
-            nvm use 20 || nvm use default || true
+            nvm use 22 || nvm use default || true
           fi
 
           echo "🚀 Backend: install & restart..."
           cd server
-          if ! command -v npm &> /dev/null; then
-            echo "❌ npm not found — please ensure Node.js is installed"
-            exit 1
-          fi
           npm install --omit=dev
-          if command -v pm2 &> /dev/null; then
-            pm2 restart marvify_be || pm2 start server.js --name marvify_be
-          else
-            echo "⚠️ pm2 not found — installing..."
-            npm install -g pm2
-            pm2 start server.js --name marvify_be
-          fi
+          pm2 restart marvify_be || pm2 start server.js --name marvify_be
 
           echo "🎨 Frontend: build & reload..."
           cd ../client
-          npm install --omit=dev
+          npm install   # 👈 cài cả dev dependencies
           npm run build
 
           echo "🌐 Restart Nginx container..."
