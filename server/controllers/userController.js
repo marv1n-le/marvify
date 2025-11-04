@@ -2,7 +2,7 @@ import imagekit from "../configs/imagekit.js";
 import User from "../models/User.js";
 import fs from "fs";
 
-// Get user data
+// Get user data by id
 export const getUserData = async (req, res) => {
   try {
     const { userId } = req.auth();
@@ -18,11 +18,22 @@ export const getUserData = async (req, res) => {
   }
 };
 
+// get all users 
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({});
+    return res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Update user data
 export const updatedUserData = async (req, res) => {
   try {
+    console.log(req.body, req.headers);
     const { userId } = req.auth();
-    const { username, bio, location, full_name } = req.body;
+    let { username, bio, location, full_name } = req.body;
 
     const tempUser = await User.findById(userId);
 
@@ -51,6 +62,7 @@ export const updatedUserData = async (req, res) => {
         file: buffer,
         fileName: profile.originalname,
       });
+      console.log(response);
       const url = imagekit.url({
         path: response.filePath,
         transformation: [
