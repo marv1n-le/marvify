@@ -64,12 +64,35 @@ const sendWelcomeEmail = inngest.createFunction(
   { id: "send-welcome-email" },
   { event: "clerk/user.created" },
   async ({ event }) => {
-    const { email } = event.data;
-    const subject = "Welcome to Marvify";
-    const body = "Welcome to Marvify. We are glad to have you on board.";
+    const { first_name, email_addresses } = event.data;
+    const email = email_addresses?.[0]?.email_address;
+
+    if (!email) {
+      console.error("No email found for the created user");
+      return { success: false, message: "Email not found" };
+    }
+
+    const subject = "Welcome to Marvify 🎉";
+    const body = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Welcome to Marvify, ${first_name || "friend"}!</h2>
+        <p>We’re excited to have you join our community 🎈</p>
+        <p>Start connecting with others, share your moments, and enjoy a great experience on Marvify.</p>
+        <br/>
+        <a href="${process.env.FRONTEND_URL}" 
+           style="display:inline-block; background-color:#10b981; color:white; padding:10px 20px; 
+           text-decoration:none; border-radius:6px;">
+           Go to Marvify
+        </a>
+        <br/><br/>
+        <p>Thanks,<br/>Marvin Le</p>
+      </div>
+    `;
     await sendEmail(email, subject, body);
+    return { success: true, message: "Welcome email sent successfully" };
   }
 );
+
 
 // Inngest function to send connection request email to user
 const sendConnectionRequestEmail = inngest.createFunction(
@@ -110,4 +133,5 @@ export const functions = [
   syncUserDeletion,
   syncUserUpdation,
   sendWelcomeEmail,
+  sendConnectionRequestEmail,
 ];
