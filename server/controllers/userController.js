@@ -13,7 +13,13 @@ export const getUserData = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
-    return res.status(200).json({ success: true, data: user, message: "User data fetched successfully" });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "User data fetched successfully",
+        data: user,
+      });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -23,7 +29,7 @@ export const getUserData = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({});
-    return res.status(200).json({ success: true, data: users, message: "All users fetched successfully" });
+    return res.status(200).json({ success: true, message: "All users fetched successfully", data: users });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -95,7 +101,7 @@ export const updatedUserData = async (req, res) => {
       new: true,
     });
 
-    return res.status(200).json({ success: true, data: user, message: "User data updated successfully" });
+    return res.status(200).json({ success: true, message: "User data updated successfully", data: user });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -118,7 +124,7 @@ export const discoverUsers = async (req, res) => {
 
     const filteredUsers = allUsers.filter((user) => user._id !== userId);
 
-    return res.status(200).json({ success: true, data: filteredUsers, message: "Users fetched successfully" });
+    return res.status(200).json({ success: true, message: "Users fetched successfully", data: filteredUsers });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -260,6 +266,23 @@ export const acceptConnectionRequest = async (req, res) => {
     await connection.save();
 
     return res.status(200).json({ success: true, message: "Connection request accepted successfully" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// Get user profile
+export const getUserProfile = async (req, res) => {
+  try {
+    const { profileId } = req.body;
+    const profile = await User.findById(profileId);
+
+    if (!profile) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    const posts = await Post.find({ user: profileId }).populate('user');
+    return res.json({ success: true, data: { profile, posts } });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
