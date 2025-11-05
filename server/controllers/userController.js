@@ -1,4 +1,5 @@
 import imagekit from "../configs/imagekit.js";
+import { inngest } from "../inngest/index.js";
 import Connection from "../models/Connection.js";
 import User from "../models/User.js";
 import fs from "fs";
@@ -201,11 +202,19 @@ export const sendConnectionRequest = async(req, res) => {
     })
 
     if (!connection) {
-      await Connection.create({
+      const newConnection = await Connection.create({
         from_user_id: userId,
         to_user_id: id,
         status: 'pending'
       })
+
+      await inngest.send({
+        name: 'app/connection-request',
+        data: {
+          connectionId: newConnection._id,
+        },
+      });
+
       return res.status(200).json({ success: true, message: "Connection request sent successfully" });
     } else if (connection && connection.status === "accepted") {
       return res.status(400).json({ success: false, message: "You are already connected to this user" });
