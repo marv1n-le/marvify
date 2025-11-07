@@ -86,13 +86,13 @@ export const likePost = async (req, res) => {
       await post.save();
       return res
         .status(200)
-        .json({ success: true, message: "Post unliked successfully" });
+        .json({ success: true, message: "Post liked successfully" });
     } else {
       post.likes_count.push(userId);
       await post.save();
       return res
         .status(200)
-        .json({ success: true, message: "Post liked successfully" });
+        .json({ success: true, message: "Post unliked successfully" });
     }
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

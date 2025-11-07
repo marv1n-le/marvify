@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { dummyUserData } from "../assets/assets";
 import { Pencil } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { updateUser } from "../features/user/userSlice";
+import { useAuth } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
 
 const ProfileModal = ({ setShowEdit }) => {
-  const user = dummyUserData;
+  const { getToken } = useAuth();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.value);
   const [editForm, setEditForm] = useState({
     username: user.username,
     bio: user.bio,
@@ -13,8 +19,42 @@ const ProfileModal = ({ setShowEdit }) => {
     full_name: user.full_name,
   });
 
+  useEffect(() => {
+    if(user) {  
+      setEditForm({
+        username: user.username,
+        bio: user.bio,
+        location: user.location,
+        profile_picture: null,
+        cover_photo: null,
+        full_name: user.full_name,
+      });
+    }
+  }, [user]);
+
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    try {
+      const userData = new FormData();
+      const { username, bio, location, full_name, profile_picture, cover_photo } = editForm;
+
+      userData.append("username", username);
+      userData.append("bio", bio);
+      userData.append("location", location);
+      userData.append("full_name", full_name);
+      if(profile_picture) {
+        userData.append("profile", profile_picture);
+      }
+      if(cover_photo) {
+        userData.append("cover", cover_photo);
+      }
+      const token = await getToken();
+      dispatch(updateUser({ userData, token }));
+
+      setShowEdit(false);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
   return (
     <div className="fixed top-0 bottom-0 left-0 right-0 z-110 h-screen overflow-y-scroll bg-black/50">
@@ -23,7 +63,9 @@ const ProfileModal = ({ setShowEdit }) => {
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Edit Profile
           </h1>
-          <form className="space-y-4" onSubmit={handleSaveProfile}>
+          <form className="space-y-4" onSubmit={e => toast.promise(
+            handleSaveProfile(e), {loading: "Saving...", success: "Profile updated successfully!", error: "Failed to update profile."}
+          )}>
             {/* Profile Picture */}
             <div className="flex flex-col items-start gap-3">
               <label
