@@ -10,6 +10,7 @@ import userRouter from "./routes/userRoutes.js";
 import postRouter from "./routes/postRoutes.js";
 import storyRouter from "./routes/storyRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 
@@ -26,6 +27,9 @@ app.use("/api/users", userRouter);
 app.use("/api/posts", postRouter);
 app.use("/api/stories", storyRouter);
 app.use("/api/messages", messageRouter);
+
+// Error handling middleware
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 
