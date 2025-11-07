@@ -5,7 +5,7 @@ import { inngest } from "../inngest/index.js";
 import Story from "../models/Story.js";
 
 // Add User Story
-export const addUserStory = async (req, res) => {
+export const addUserStory = async (req, res, next) => {
   try {
     const { userId } = req.auth();
     const { content, media_type, background_color } = req.body;
@@ -39,12 +39,12 @@ export const addUserStory = async (req, res) => {
 
     return res.status(200).json({ success: true, message: "Story created successfully", data: story });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // Get user stories
-export const getStories = async (req, res) => {
+export const getStories = async (req, res, next) => {
   try {
     const { userId } = req.auth();
     const user = await User.findById(userId);
@@ -61,6 +61,6 @@ export const getStories = async (req, res) => {
         data: stories,
       });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
