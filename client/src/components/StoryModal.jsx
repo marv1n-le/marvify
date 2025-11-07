@@ -1,6 +1,8 @@
+import { useAuth } from "@clerk/clerk-react";
 import { ArrowLeft, Sparkle, TextIcon, Upload } from "lucide-react";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+import api from "../api/axios";
 
 const StoryModal = ({ setShowModal, fetchStories }) => {
   const bgColors = [
@@ -17,16 +19,97 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
   const [text, setText] = useState("");
   const [media, setMedia] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const { getToken } = useAuth();
+
+  const MAX_VIDEO_DURATION = 60;
+  const MAX_MEDIA_SIZE = 50;
 
   const handleMediaUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.type.startsWith("image")) {
+        // ✅ Ảnh
+        if (file.size > MAX_MEDIA_SIZE * 1024 * 1024) {
+          toast.error(`Image size must be less than ${MAX_MEDIA_SIZE}MB.`);
+          return;
+        }
+        setMedia(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        setText("");
+        setMode("media");
+      }
+      if (file.type.startsWith("video")) {
+        if (file.size > MAX_MEDIA_SIZE * 1024 * 1024) {
+          toast.error(`Video size must be less than ${MAX_MEDIA_SIZE}MB.`);
+          setMedia(null);
+          setPreviewUrl(null);
+          return;
+        }
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.onloadedmetadata = () => {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > MAX_VIDEO_DURATION) {
+            toast.error(
+              `Video duration must be less than ${MAX_VIDEO_DURATION} seconds.`
+            );
+            setMedia(null);
+            setPreviewUrl(null);
+            return;
+          } else {
+            setMedia(file);
+            setPreviewUrl(URL.createObjectURL(file));
+            setText("");
+            setMode("media");
+          }
+        };
+        video.src = URL.createObjectURL(file);
+      }
+    } else if (file.type.startsWith("image")) {
       setMedia(file);
       setPreviewUrl(URL.createObjectURL(file));
+      setText("");
+      setMode("media");
     }
   };
 
-  const handleCreateStory = async () => {};
+  const handleCreateStory = async () => {
+    const media_type =
+      mode === "media"
+        ? media.type.startsWith("image")
+          ? "image"
+          : "video"
+        : "text";
+
+    if (media_type === "text" && !text) {
+      throw new Error("Please add text to your story.");
+    }
+
+    let formData = new FormData();
+    formData.append("content", text);
+    formData.append("media_type", media_type);
+    formData.append("background_color", background);
+    if (media_type === "image" || media_type === "video") {
+      formData.append("media", media);
+    }
+
+    const token = await getToken();
+    try {
+      const { data } = await api.post("/api/stories/create", formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
+        toast.success(data.message);
+        setShowModal(false);
+        fetchStories();
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.log(error.message);
+      throw new Error(error.message);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-110 min-h-screen bg-black/80 backdrop-blur text-white flex items-center justify-center p-4">
@@ -99,10 +182,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
               type="file"
               accept="image/*, video/*"
               className="hidden"
-              onChange={(e) => {
-                handleMediaUpload(e);
-                setMode("media");
-              }}
+              onChange={handleMediaUpload}
             />
             <Upload size={18} /> Photo/Video
           </label>
@@ -110,14 +190,11 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
 
         <button
           className="flex items-center justify-center gap-2 text-white py-3 mt-4 w-full rounded bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer"
-          onClick={() => toast.promise(
-            handleCreateStory(),
-            {
-              loading: 'Saving...',
-              success: <p>Story Created!</p>,
-              error: e => <p>{e.message}</p>
-            }
-          )}
+          onClick={() =>
+            toast.promise(handleCreateStory(), {
+              loading: "Saving...",
+            })
+          }
         >
           <Sparkle size={18} /> Create Story
         </button>
