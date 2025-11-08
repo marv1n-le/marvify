@@ -204,21 +204,32 @@ export const sendConnectionRequest = async (req, res, next) => {
     const { userId } = req.auth();
     const { id } = req.body;
 
-    //Check if user has sent more than 20 connection requests in the last 24 hours
+    console.log("➡️ sendConnectionRequest called by:", userId, "to:", id);
+
+    // kiểm tra input
+    if (!id) {
+      console.warn("⚠️ Missing 'id' in body");
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing id in body" });
+    }
+
+    // Check if user has sent more than 20 connection requests in the last 24 hours
     const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const connectionRequests = await Connection.find({
       from_user_id: userId,
       createdAt: { $gt: last24Hours },
     });
 
+    console.log("📊 connectionRequests count:", connectionRequests.length);
+
     if (connectionRequests.length >= 20) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message:
-            "You have sent too many connection requests. Please try again later.",
-        });
+      console.warn("🚫 Too many requests from:", userId);
+      return res.status(400).json({
+        success: false,
+        message:
+          "You have sent too many connection requests. Please try again later.",
+      });
     }
 
     // Check if users are already connected
@@ -229,7 +240,10 @@ export const sendConnectionRequest = async (req, res, next) => {
       ],
     });
 
+    console.log("🔍 Found connection:", connection);
+
     if (!connection) {
+      console.log("🆕 Creating new pending connection...");
       const newConnection = await Connection.create({
         from_user_id: userId,
         to_user_id: id,
@@ -243,31 +257,29 @@ export const sendConnectionRequest = async (req, res, next) => {
         },
       });
 
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Connection request sent successfully",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Connection request sent successfully",
+      });
     } else if (connection && connection.status === "accepted") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "You are already connected to this user",
-        });
+      console.warn("⚠️ Already connected:", connection);
+      return res.status(400).json({
+        success: false,
+        message: "You are already connected to this user",
+      });
     }
 
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "You have already sent a connection request to this user",
-      });
+    console.warn("⚠️ Duplicate request:", connection);
+    return res.status(400).json({
+      success: false,
+      message: "You have already sent a connection request to this user",
+    });
   } catch (error) {
+    console.error("💥 Error in sendConnectionRequest:", error);
     next(error);
   }
 };
+
 
 // Get user connections
 export const getUserConnections = async (req, res, next) => {
