@@ -4,7 +4,7 @@ import User from "../models/User.js";
 import imagekit from "../configs/imagekit.js";
 
 //Add post
-export const addPost = async (req, res) => {
+export const addPost = async (req, res, next) => {
   try {
     const { userId } = req.auth();
     const { content, post_type } = req.body;
@@ -45,12 +45,12 @@ export const addPost = async (req, res) => {
       .status(200)
       .json({ success: true, message: "Post created successfully", data: post });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // Get all posts
-export const getFeedPosts = async (req, res) => {
+export const getFeedPosts = async (req, res, next) => {
   try {
     const { userId } = req.auth();
     const user = await User.findById(userId);
@@ -69,12 +69,12 @@ export const getFeedPosts = async (req, res) => {
       data: posts,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // Like post
-export const likePost = async (req, res) => {
+export const likePost = async (req, res, next) => {
   try {
     const { userId } = req.auth();
     const { postId } = req.body;
@@ -95,6 +95,6 @@ export const likePost = async (req, res) => {
         .json({ success: true, message: "Post unliked successfully" });
     }
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

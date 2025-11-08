@@ -34,8 +34,10 @@ export const sseController = (req, res) => {
 // Send message
 export const sendMessage = async (req, res) => {
   try {
+    console.log("REQ BODY:", req.body);
+
     const { userId } = req.auth();
-    const { toUserId, text } = req.body;
+    const { to_user_id, text } = req.body;
     const image = req.file;
 
     let mediaUrl = "";
@@ -59,7 +61,7 @@ export const sendMessage = async (req, res) => {
 
     const message = await Message.create({
       from_user_id: userId,
-      to_user_id: toUserId,
+      to_user_id: to_user_id,
       text,
       message_type,
       media_url: mediaUrl,
@@ -75,8 +77,8 @@ export const sendMessage = async (req, res) => {
       "from_user_id"
     );
 
-    if (connections[toUserId]) {
-      connections[toUserId].write(
+    if (connections[to_user_id]) {
+      connections[to_user_id].write(
         `data: ${JSON.stringify(messageWithUserData)}\n\n`
       );
     }
