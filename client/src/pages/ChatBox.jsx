@@ -27,7 +27,7 @@ const ChatBox = () => {
   const fetchUserMessages = async () => {
     try {
       const token = await getToken();
-      dispatch(fetchMessages(token, userId));
+      dispatch(fetchMessages({ token, userId }));
     } catch (error) {
       console.log(error.message);
       toast.error(error.message);
@@ -75,7 +75,7 @@ const ChatBox = () => {
     return () => {
       dispatch(resetMessages());
     };
-  }, [userId, dispatch]);
+  }, [userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
