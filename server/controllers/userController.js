@@ -2,6 +2,7 @@ import imagekit from "../configs/imagekit.js";
 import { inngest } from "../inngest/index.js";
 import Connection from "../models/Connection.js";
 import User from "../models/User.js";
+import Post from "../models/Post.js";
 import fs from "fs";
 
 // Get user data by id
@@ -28,13 +29,11 @@ export const getUserData = async (req, res, next) => {
 export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "All users fetched successfully",
-        data: users,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "All users fetched successfully",
+      data: users,
+    });
   } catch (error) {
     next(error);
   }
@@ -106,13 +105,11 @@ export const updatedUserData = async (req, res, next) => {
       new: true,
     });
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "User data updated successfully",
-        data: user,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "User data updated successfully",
+      data: user,
+    });
   } catch (error) {
     next(error);
   }
@@ -135,13 +132,11 @@ export const discoverUsers = async (req, res, next) => {
 
     const filteredUsers = allUsers.filter((user) => user._id !== userId);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Users fetched successfully",
-        data: filteredUsers,
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: filteredUsers,
+    });
   } catch (error) {
     next(error);
   }
@@ -280,11 +275,10 @@ export const sendConnectionRequest = async (req, res, next) => {
   }
 };
 
-
 // Get user connections
 export const getUserConnections = async (req, res, next) => {
   try {
-    const { userId } = req.auth?.() || {}; 
+    const { userId } = req.auth?.() || {};
     console.log("➡️ getUserConnections called by:", userId);
 
     const user = await User.findById(userId).populate(
@@ -350,12 +344,10 @@ export const acceptConnectionRequest = async (req, res, next) => {
     connection.status = "accepted";
     await connection.save();
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Connection request accepted successfully",
-      });
+    return res.status(200).json({
+      success: true,
+      message: "Connection request accepted successfully",
+    });
   } catch (error) {
     next(error);
   }
@@ -368,7 +360,9 @@ export const getUserProfile = async (req, res, next) => {
     const profile = await User.findById(profileId);
 
     if (!profile) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const posts = await Post.find({ user: profileId }).populate("user");
