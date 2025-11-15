@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import { dummyMessagesData, dummyUserData } from "../assets/assets";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { ImageIcon, SendHorizonal } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
@@ -14,6 +13,7 @@ import toast from "react-hot-toast";
 
 const ChatBox = () => {
   const messages = useSelector((state) => state.messages.messages);
+  const currentUser = useSelector((state) => state.user.value);
   const { userId } = useParams();
   const { getToken } = useAuth();
   const dispatch = useDispatch();
@@ -50,9 +50,27 @@ const ChatBox = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
+        console.log("✅ Tin nhắn gửi thành công:", data.data);
+        console.log("📤 Message ID:", data.data._id);
+        console.log("📤 Current messages count:", messages.length);
+
         setText("");
         setImage(null);
-        dispatch(addMessage(data.data));
+
+        // Thêm tin nhắn vào state ngay lập tức
+        // Đảm bảo message có đầy đủ thông tin
+        const messageToAdd = {
+          ...data.data,
+          createdAt: data.data.createdAt || new Date().toISOString(),
+        };
+
+        dispatch(addMessage(messageToAdd));
+        console.log("📤 Đã dispatch addMessage với:", messageToAdd);
+
+        // Force scroll to bottom sau khi thêm tin nhắn
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       } else {
         throw new Error(data.message);
       }
@@ -64,7 +82,7 @@ const ChatBox = () => {
 
   useEffect(() => {
     if (connections.length > 0) {
-      const user = connections.find(connection => connection._id === userId);
+      const user = connections.find((connection) => connection._id === userId);
       setUser(user);
     }
   }, [connections, userId]);
@@ -77,9 +95,18 @@ const ChatBox = () => {
     };
   }, [userId]);
 
+  // Memoize sorted messages để tránh re-sort không cần thiết
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateA - dateB;
+    });
+  }, [messages]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [sortedMessages]);
 
   return (
     user && (
@@ -98,35 +125,38 @@ const ChatBox = () => {
 
         <div className="p-5 md:px-10 h-full overflow-y-scroll">
           <div className="space-y-4 max-w-4xl mx-auto">
-            {messages
-              .toSorted((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-              .map((messages, index) => (
+            {sortedMessages.map((message, index) => {
+              // Lấy from_user_id - có thể là string hoặc object
+              const fromUserId =
+                message.from_user_id?._id || message.from_user_id;
+              const isCurrentUserMessage = fromUserId === currentUser?._id;
+
+              return (
                 <div
-                  key={index}
+                  key={message._id || index}
                   className={`flex flex-col ${
-                    messages.to_user_id !== user._id
-                      ? "items-start"
-                      : "items-end"
+                    isCurrentUserMessage ? "items-end" : "items-start"
                   }`}
                 >
                   <div
                     className={`p-2 text-sm max-w-sm bg-white text-slate-700 rounded-lg shadow ${
-                      messages.to_user_id !== user._id
-                        ? "rounded-bl-none"
-                        : "rounded-br-none"
+                      isCurrentUserMessage
+                        ? "rounded-br-none"
+                        : "rounded-bl-none"
                     }`}
                   >
-                    {messages.message_type === "image" && (
+                    {message.message_type === "image" && (
                       <img
-                        src={messages.media_url}
+                        src={message.media_url}
                         className="w-full max-w-sm rounded-lg mb-1"
                         alt=""
                       />
                     )}
-                    <p>{messages.text}</p>
+                    <p>{message.text}</p>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         </div>

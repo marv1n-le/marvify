@@ -14,18 +14,22 @@ import { useSelector } from "react-redux";
 const Profile = () => {
   const currentUser = useSelector((state) => state.user.value);
   const { getToken } = useAuth();
-  const { profileId } = useParams();
+  const { userId } = useParams(); // Sửa từ profileId thành userId để khớp với route
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [showEdit, setShowEdit] = useState(false);
 
-  const fetchUser = async (profileId) => {
+  const fetchUser = async (userId) => {
     const token = await getToken();
     try {
-      const { data } = await api.post(`/api/users/profile`, { profileId }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await api.post(
+        `/api/users/profile`,
+        { profileId: userId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (data.success) {
         setUser(data.data.profile);
         setPosts(data.data.posts);
@@ -38,12 +42,12 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    if(profileId) {
-      fetchUser(profileId);
+    if (userId) {
+      fetchUser(userId);
     } else {
       setUser(currentUser);
     }
-  }, [profileId, currentUser]);
+  }, [userId, currentUser]);
 
   return user ? (
     <div className="relative h-full overflow-y-scroll bg-gray-50 p-6">
@@ -65,7 +69,7 @@ const Profile = () => {
           <UserProfileInfo
             user={user}
             posts={posts}
-            profileId={profileId}
+            profileId={userId}
             setShowEdit={setShowEdit}
           />
         </div>
@@ -116,7 +120,9 @@ const Profile = () => {
                           className="w-64 aspect-video object-cover"
                           alt=""
                         />
-                        <p className="absolute bottom-0 right-0 text-xs p-1 px-3 backdrop-blur-xl text-white opacity-0 group-hover:opacity-100 transition duration-300">Posted {moment(post.createdAt).fromNow()}</p>
+                        <p className="absolute bottom-0 right-0 text-xs p-1 px-3 backdrop-blur-xl text-white opacity-0 group-hover:opacity-100 transition duration-300">
+                          Posted {moment(post.createdAt).fromNow()}
+                        </p>
                       </Link>
                     ))}
                   </>
@@ -126,9 +132,7 @@ const Profile = () => {
         </div>
       </div>
       {/* Edit Profile */}
-      {showEdit && (
-        <ProfileModal setShowEdit={setShowEdit} />
-      )}
+      {showEdit && <ProfileModal setShowEdit={setShowEdit} />}
     </div>
   ) : (
     <Loading />

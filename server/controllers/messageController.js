@@ -66,22 +66,30 @@ export const sendMessage = async (req, res) => {
       message_type,
       media_url: mediaUrl,
     });
-    res.json({
-      success: true,
-      message: "Message sent successfully",
-      data: message,
-    });
 
     // Send message to to_user_id using SSE
     const messageWithUserData = await Message.findById(message._id).populate(
       "from_user_id"
     );
 
+    // Also send to sender if they have the chat open
+    if (connections[userId]) {
+      connections[userId].write(
+        `data: ${JSON.stringify(messageWithUserData)}\n\n`
+      );
+    }
+
     if (connections[to_user_id]) {
       connections[to_user_id].write(
         `data: ${JSON.stringify(messageWithUserData)}\n\n`
       );
     }
+
+    res.json({
+      success: true,
+      message: "Message sent successfully",
+      data: messageWithUserData,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -98,7 +106,9 @@ export const getChatMessages = async (req, res) => {
         { from_user_id: userId, to_user_id: to_user_id },
         { from_user_id: to_user_id, to_user_id: userId },
       ],
-    }).sort({ createdAt: -1 });
+    })
+      .populate("from_user_id")
+      .sort({ createdAt: -1 });
 
     // Mark messages as seen
     await Message.updateMany(
