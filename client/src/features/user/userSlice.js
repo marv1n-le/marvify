@@ -35,13 +35,10 @@ const userSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // ✅ Khi fetch user thành công → set state.value
       .addCase(fetchUser.fulfilled, (state, action) => {
         state.value = action.payload.data;
       })
-      // ✅ Khi update user thành công → cập nhật Redux store luôn
       .addCase(updateUser.fulfilled, (state, action) => {
-        console.log("🔁 Updated user payload:", action.payload);
         if (action.payload) {
           state.value = { ...state.value, ...action.payload };
         }

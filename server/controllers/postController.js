@@ -1,9 +1,7 @@
 import fs from "fs";
 import Post from "../models/Post.js";
-import User from "../models/User.js";
 import imagekit from "../configs/imagekit.js";
 
-//Add post
 export const addPost = async (req, res, next) => {
   try {
     const { userId } = req.auth();
@@ -43,25 +41,19 @@ export const addPost = async (req, res, next) => {
 
     return res
       .status(200)
-      .json({ success: true, message: "Post created successfully", data: post });
+      .json({
+        success: true,
+        message: "Post created successfully",
+        data: post,
+      });
   } catch (error) {
     next(error);
   }
 };
 
-// Get all posts
 export const getFeedPosts = async (req, res, next) => {
   try {
-    const { userId } = req.auth();
-    const user = await User.findById(userId);
-
-    //User connections and following
-    const userIds = [userId, ...user.connections, ...user.following];
-    const posts = await Post.find({
-      user: { $in: userIds },
-    })
-      .populate("user")
-      .sort({ createdAt: -1 });
+    const posts = await Post.find({}).populate("user").sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -73,7 +65,6 @@ export const getFeedPosts = async (req, res, next) => {
   }
 };
 
-// Like post
 export const likePost = async (req, res, next) => {
   try {
     const { userId } = req.auth();
@@ -94,6 +85,38 @@ export const likePost = async (req, res, next) => {
         .status(200)
         .json({ success: true, message: "Post unliked successfully" });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deletePost = async (req, res, next) => {
+  try {
+    const { userId } = req.auth();
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Post not found" });
+    }
+
+    if (post.user.toString() !== userId) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "You can only delete your own posts",
+        });
+    }
+
+    await Post.findByIdAndDelete(postId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Post deleted successfully" });
   } catch (error) {
     next(error);
   }

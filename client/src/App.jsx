@@ -28,7 +28,6 @@ const App = () => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
-  // Fetch user data từ backend
   useEffect(() => {
     const fetchData = async () => {
       if (user) {
@@ -39,34 +38,33 @@ const App = () => {
     fetchData();
   }, [user, getToken, dispatch]);
 
-  // SSE lắng nghe tin nhắn realtime
   useEffect(() => {
     if (userData?._id) {
-      console.log("🔌 Kết nối SSE với userId:", userData._id);
-
       let eventSource = null;
       let reconnectTimeout = null;
 
       const connectSSE = async () => {
         try {
           const token = await getToken();
-          // EventSource không hỗ trợ headers, nên dùng query parameter
           eventSource = new EventSource(
             `${import.meta.env.VITE_BASEURL}/api/messages/sse?token=${token}`
           );
 
           eventSource.onmessage = (event) => {
             try {
-              // Skip initial connection message
-              if (event.data.startsWith("log:")) {
-                console.log("✅ SSE Connected:", event.data);
+              if (event.data === "" || event.data.startsWith(":")) {
+                return;
+              }
+
+              if (
+                event.data.startsWith("log:") ||
+                event.data === "Connected to SSE endpoint"
+              ) {
                 return;
               }
 
               const message = JSON.parse(event.data);
-              console.log("📩 SSE nhận tin nhắn:", message);
 
-              // Check if we're in the chat with the sender or receiver
               const senderId =
                 message.from_user_id?._id || message.from_user_id;
               const receiverId = message.to_user_id?._id || message.to_user_id;
@@ -76,29 +74,26 @@ const App = () => {
               );
               const currentUserId = userData?._id;
 
-              // Thêm tin nhắn nếu đang ở trong chat với sender hoặc receiver
-              // (tức là tin nhắn liên quan đến cuộc trò chuyện hiện tại)
-              const isRelevantToCurrentChat =
-                currentChatUserId === senderId ||
-                currentChatUserId === receiverId;
+              const isInChatWithSender = currentChatUserId === senderId;
+              const isInChatWithReceiver = currentChatUserId === receiverId;
+              const isMessageFromMe = senderId === currentUserId;
+              const isMessageToCurrentChat = receiverId === currentChatUserId;
 
-              if (isRelevantToCurrentChat) {
+              const shouldAddMessage =
+                (isInChatWithSender && !isMessageFromMe) ||
+                (isInChatWithReceiver && isMessageFromMe) ||
+                (isMessageToCurrentChat && isMessageFromMe);
+
+              if (shouldAddMessage) {
                 dispatch(addMessage(message));
-              } else {
-                // bạn có thể thêm notification ở đây
-                console.log(
-                  "📬 Tin nhắn từ người khác, có thể hiển thị notification"
-                );
               }
             } catch (error) {
-              console.error("❌ Lỗi parse message:", error);
+              // Error handled silently
             }
           };
 
           eventSource.onerror = (e) => {
-            console.error("❌ Lỗi SSE:", e);
             if (eventSource.readyState === EventSource.CLOSED) {
-              // Reconnect after 3 seconds
               reconnectTimeout = setTimeout(() => {
                 if (eventSource) {
                   eventSource.close();
@@ -108,7 +103,7 @@ const App = () => {
             }
           };
         } catch (error) {
-          console.error("❌ Lỗi khi kết nối SSE:", error);
+          // Error handled silently
         }
       };
 

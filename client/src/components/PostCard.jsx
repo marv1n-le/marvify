@@ -1,4 +1,4 @@
-import { BadgeCheck, Heart, MessageCircle, Share2 } from "lucide-react";
+import { BadgeCheck, Heart, MessageCircle, Share2, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import moment from "moment";
 import { dummyUserData } from "../assets/assets";
@@ -8,7 +8,7 @@ import { useAuth } from "@clerk/clerk-react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, onDelete }) => {
   const postWithHashtags = post.content.replace(
     /(#\w+)/g,
     '<span class="text-indigo-500">$1</span>'
@@ -40,31 +40,66 @@ const PostCard = ({ post }) => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       throw new Error(error.message);
     }
   };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+      return;
+    }
+
+    const token = await getToken();
+    try {
+      const { data } = await api.delete(`/api/posts/${post._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
+        toast.success(data.message);
+        if (onDelete) {
+          onDelete(post._id);
+        }
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Không thể xóa bài viết");
+    }
+  };
+
+  const isOwner = currentUser?._id && (
+    (post.user?._id && post.user._id === currentUser._id) || 
+    (typeof post.user === 'string' && post.user === currentUser._id)
+  );
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4 w-full max-w-2xl">
       {/* User Info */}
-      <div
-        onClick={() => navigate("/profile/" + post.user._id)}
-        className="inline-flex items-center gap-3 cursor-pointer"
-      >
-        <img
-          src={post.user.profile_picture}
-          alt=""
-          className="w-10 h-10 rounded-full shadow"
-        />
-        <div>
-          <div className="flex items-center space-x-1">
-            <span>{post.user.full_name}</span>
-            <BadgeCheck className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-gray-500 text-sm">
-            @{post.user.username} • {moment(post.createdAt).fromNow()}
+      <div className="flex items-center justify-between">
+        <div
+          onClick={() => navigate("/profile/" + post.user._id)}
+          className="inline-flex items-center gap-3 cursor-pointer"
+        >
+          <img
+            src={post.user.profile_picture}
+            alt=""
+            className="w-10 h-10 rounded-full shadow"
+          />
+          <div>
+            <div className="flex items-center space-x-1">
+              <span>{post.user.full_name}</span>
+              <BadgeCheck className="w-4 h-4 text-blue-500" />
+            </div>
+            <div className="text-gray-500 text-sm">
+              @{post.user.username} • {moment(post.createdAt).fromNow()}
+            </div>
           </div>
         </div>
+        {isOwner && (
+          <Trash2
+            className="w-5 h-5 text-red-500 cursor-pointer hover:text-red-700 transition-colors"
+            onClick={handleDelete}
+          />
+        )}
       </div>
 
       {/* Post Content */}

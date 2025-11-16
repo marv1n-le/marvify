@@ -1,41 +1,67 @@
 import fs from "fs";
 import imagekit from "../configs/imagekit.js";
 import Message from "../models/Message.js";
-import User from "../models/User.js";
 
-// Create an empty object to store SS Event connections
 const connections = {};
 
-// Controller function for the SSE endpoint
-export const sseController = (req, res) => {
-  const { userId } = req.auth();
+export const sseController = async (req, res) => {
+  try {
+    const { userId } = await req.auth();
 
-  console.log("New client connected:", userId);
+    if (!userId) {
+      res.status(401).write("event: error\ndata: Unauthorized\n\n");
+      res.end();
+      return;
+    }
 
-  // Set SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("X-Accel-Buffering", "no");
 
-  // Add the client to the connections object
-  connections[userId] = res;
+    connections[userId] = res;
 
-  // Send an initial event to the client
-  res.write("log: Connected to SSE endpoint\n\n");
+    res.write("event: connected\ndata: Connected to SSE endpoint\n\n");
 
-  res.on("close", () => {
-    //Remove the client's response object from the connections array
-    delete connections[userId];
-    console.log("Client disconnected:", userId);
-  });
+    const heartbeat = setInterval(() => {
+      if (connections[userId]) {
+        try {
+          res.write(": heartbeat\n\n");
+        } catch (error) {
+          clearInterval(heartbeat);
+          delete connections[userId];
+        }
+      } else {
+        clearInterval(heartbeat);
+      }
+    }, 30000);
+
+    res.on("close", () => {
+      clearInterval(heartbeat);
+      delete connections[userId];
+    });
+
+    res.on("error", (error) => {
+      clearInterval(heartbeat);
+      delete connections[userId];
+    });
+  } catch (error) {
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .write(
+          "event: error\ndata: " +
+            JSON.stringify({ message: error.message }) +
+            "\n\n"
+        );
+      res.end();
+    }
+  }
 };
 
-// Send message
 export const sendMessage = async (req, res) => {
   try {
-    console.log("REQ BODY:", req.body);
-
     const { userId } = req.auth();
     const { to_user_id, text } = req.body;
     const image = req.file;
@@ -67,22 +93,28 @@ export const sendMessage = async (req, res) => {
       media_url: mediaUrl,
     });
 
-    // Send message to to_user_id using SSE
     const messageWithUserData = await Message.findById(message._id).populate(
       "from_user_id"
     );
 
-    // Also send to sender if they have the chat open
     if (connections[userId]) {
-      connections[userId].write(
-        `data: ${JSON.stringify(messageWithUserData)}\n\n`
-      );
+      try {
+        connections[userId].write(
+          `data: ${JSON.stringify(messageWithUserData)}\n\n`
+        );
+      } catch (error) {
+        delete connections[userId];
+      }
     }
 
     if (connections[to_user_id]) {
-      connections[to_user_id].write(
-        `data: ${JSON.stringify(messageWithUserData)}\n\n`
-      );
+      try {
+        connections[to_user_id].write(
+          `data: ${JSON.stringify(messageWithUserData)}\n\n`
+        );
+      } catch (error) {
+        delete connections[to_user_id];
+      }
     }
 
     res.json({
@@ -95,7 +127,6 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// Get messages
 export const getChatMessages = async (req, res) => {
   try {
     const { userId } = req.auth();
@@ -110,7 +141,6 @@ export const getChatMessages = async (req, res) => {
       .populate("from_user_id")
       .sort({ createdAt: -1 });
 
-    // Mark messages as seen
     await Message.updateMany(
       {
         from_user_id: to_user_id,

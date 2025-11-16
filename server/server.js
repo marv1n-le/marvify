@@ -18,6 +18,14 @@ await connectDB();
 
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.path === "/api/messages/sse" && req.query.token && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  next();
+});
+
 app.use(clerkMiddleware());
 
 app.get("/", (req, res) => res.send("Server is running properly."));
@@ -28,7 +36,6 @@ app.use("/api/posts", postRouter);
 app.use("/api/stories", storyRouter);
 app.use("/api/messages", messageRouter);
 
-// Error handling middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;

@@ -106,7 +106,6 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       throw new Error(error.message);
     }
   };

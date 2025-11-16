@@ -4,7 +4,6 @@ import User from "../models/User.js";
 import { inngest } from "../inngest/index.js";
 import Story from "../models/Story.js";
 
-// Add User Story
 export const addUserStory = async (req, res, next) => {
   try {
     const { userId } = req.auth();
@@ -12,7 +11,6 @@ export const addUserStory = async (req, res, next) => {
     const media = req.file;
     let media_url = "";
 
-    //upload media to imagekit
     if (media_type === "image" || media_type === "video") {
       const fileBuffer = fs.readFileSync(media.path);
       const response = await imagekit.upload({
@@ -43,7 +41,6 @@ export const addUserStory = async (req, res, next) => {
   }
 };
 
-// Get user stories
 export const getStories = async (req, res, next) => {
   try {
     const { userId } = req.auth();

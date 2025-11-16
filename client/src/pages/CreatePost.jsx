@@ -37,11 +37,9 @@ const CreatePost = () => {
       if (data.success) {
         navigate("/");
       } else {
-        console.log(data.message);
         throw new Error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       throw new Error(error.message);
     }
     setLoading(false);
