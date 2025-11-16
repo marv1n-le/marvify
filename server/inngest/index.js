@@ -5,10 +5,8 @@ import sendEmail from "../configs/nodeMailer.js";
 import Story from "../models/Story.js";
 import Message from "../models/Message.js";
 
-// Create a client to send and receive events
 export const inngest = new Inngest({ id: "marvify-app" });
 
-// Inngest function to save user data to database
 const syncUserCreation = inngest.createFunction(
   { id: "sync-user-from-clerk" },
   { event: "clerk/user.created" },
@@ -34,7 +32,6 @@ const syncUserCreation = inngest.createFunction(
   }
 );
 
-//Inngest function to update user data in database
 const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
@@ -51,7 +48,6 @@ const syncUserUpdation = inngest.createFunction(
   }
 );
 
-// Inngest function to delete user data from database
 const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-from-clerk" },
   { event: "clerk/user.deleted" },
@@ -61,7 +57,6 @@ const syncUserDeletion = inngest.createFunction(
   }
 );
 
-// Inngest function to send welcome email to user
 const sendWelcomeEmail = inngest.createFunction(
   { id: "send-welcome-email" },
   { event: "clerk/user.created" },
@@ -70,7 +65,6 @@ const sendWelcomeEmail = inngest.createFunction(
     const email = email_addresses?.[0]?.email_address;
 
     if (!email) {
-      console.error("No email found for the created user");
       return { success: false, message: "Email not found" };
     }
 
@@ -95,8 +89,6 @@ const sendWelcomeEmail = inngest.createFunction(
   }
 );
 
-
-// Inngest function to send connection request email to user
 const sendConnectionRequestEmail = inngest.createFunction(
   { id: "send-new-connection-request-email" },
   { event: "app/connection-request" },
@@ -130,14 +122,13 @@ const sendConnectionRequestEmail = inngest.createFunction(
   }
 );
 
-// Inngest function to delete story after 24 hours
 const deleteStoryAfter24Hours = inngest.createFunction(
   { id: "delete-story-after-24-hours" },
   { event: "app/story.deleted" },
   async ({ event, step }) => {
     const { storyId } = event.data;
     const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    await step.sleepUntil('wait-for-24-hours', in24Hours);
+    await step.sleepUntil("wait-for-24-hours", in24Hours);
     await step.run("delete-story", async () => {
       await Story.findByIdAndDelete(storyId);
     });
@@ -155,8 +146,9 @@ const sendNotificationOfUnseenMessages = inngest.createFunction(
     const messages = await Message.find({ seen: false }).populate("to_user_id");
     const unseenCount = {};
 
-    messages.map(message => {
-      unseenCount[message.to_user_id._id] = (unseenCount[message.to_user_id._id] || 0) + 1;
+    messages.map((message) => {
+      unseenCount[message.to_user_id._id] =
+        (unseenCount[message.to_user_id._id] || 0) + 1;
     });
 
     for (const userId in unseenCount) {
@@ -177,14 +169,14 @@ const sendNotificationOfUnseenMessages = inngest.createFunction(
         to: user.email,
         subject,
         body,
-      });                       
+      });
     }
     return {
       success: true,
       message: "Notification of unseen messages sent successfully",
     };
   }
-)
+);
 
 export const functions = [
   syncUserCreation,

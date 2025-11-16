@@ -1,12 +1,9 @@
 import fs from "fs";
 import imagekit from "../configs/imagekit.js";
 import Message from "../models/Message.js";
-import User from "../models/User.js";
 
-// Create an empty object to store SS Event connections
 const connections = {};
 
-// Controller function for the SSE endpoint
 export const sseController = async (req, res) => {
   try {
     const { userId } = await req.auth();
@@ -17,49 +14,39 @@ export const sseController = async (req, res) => {
       return;
     }
 
-    console.log("New client connected:", userId);
-
-    // Set SSE headers - QUAN TRỌNG: phải set trước khi write
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("X-Accel-Buffering", "no"); // Disable buffering for nginx
+    res.setHeader("X-Accel-Buffering", "no");
 
-    // Add the client to the connections object
     connections[userId] = res;
 
-    // Send an initial event to the client
     res.write("event: connected\ndata: Connected to SSE endpoint\n\n");
 
-    // Send heartbeat để giữ connection alive
     const heartbeat = setInterval(() => {
       if (connections[userId]) {
         try {
           res.write(": heartbeat\n\n");
         } catch (error) {
-          console.error("Error sending heartbeat:", error);
           clearInterval(heartbeat);
           delete connections[userId];
         }
       } else {
         clearInterval(heartbeat);
       }
-    }, 30000); // Send heartbeat every 30 seconds
+    }, 30000);
 
     res.on("close", () => {
       clearInterval(heartbeat);
       delete connections[userId];
-      console.log("Client disconnected:", userId);
     });
 
     res.on("error", (error) => {
-      console.error("SSE connection error:", error);
       clearInterval(heartbeat);
       delete connections[userId];
     });
   } catch (error) {
-    console.error("SSE controller error:", error);
     if (!res.headersSent) {
       res
         .status(500)
@@ -73,11 +60,8 @@ export const sseController = async (req, res) => {
   }
 };
 
-// Send message
 export const sendMessage = async (req, res) => {
   try {
-    console.log("REQ BODY:", req.body);
-
     const { userId } = req.auth();
     const { to_user_id, text } = req.body;
     const image = req.file;
@@ -109,20 +93,16 @@ export const sendMessage = async (req, res) => {
       media_url: mediaUrl,
     });
 
-    // Send message to to_user_id using SSE
     const messageWithUserData = await Message.findById(message._id).populate(
       "from_user_id"
     );
 
-    // Also send to sender if they have the chat open
     if (connections[userId]) {
       try {
         connections[userId].write(
           `data: ${JSON.stringify(messageWithUserData)}\n\n`
         );
-        console.log("📤 SSE sent to sender:", userId);
       } catch (error) {
-        console.error("Error sending SSE to sender:", error);
         delete connections[userId];
       }
     }
@@ -132,9 +112,7 @@ export const sendMessage = async (req, res) => {
         connections[to_user_id].write(
           `data: ${JSON.stringify(messageWithUserData)}\n\n`
         );
-        console.log("📤 SSE sent to receiver:", to_user_id);
       } catch (error) {
-        console.error("Error sending SSE to receiver:", error);
         delete connections[to_user_id];
       }
     }
@@ -149,7 +127,6 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// Get messages
 export const getChatMessages = async (req, res) => {
   try {
     const { userId } = req.auth();
@@ -164,7 +141,6 @@ export const getChatMessages = async (req, res) => {
       .populate("from_user_id")
       .sort({ createdAt: -1 });
 
-    // Mark messages as seen
     await Message.updateMany(
       {
         from_user_id: to_user_id,

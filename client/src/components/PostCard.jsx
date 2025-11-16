@@ -40,7 +40,6 @@ const PostCard = ({ post, onDelete }) => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       throw new Error(error.message);
     }
   };
@@ -64,7 +63,6 @@ const PostCard = ({ post, onDelete }) => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       toast.error(error.response?.data?.message || "Không thể xóa bài viết");
     }
   };

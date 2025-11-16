@@ -19,9 +19,7 @@ await connectDB();
 app.use(cors());
 app.use(express.json());
 
-// Middleware để xử lý token từ query parameter cho SSE trước khi clerkMiddleware chạy
 app.use((req, res, next) => {
-  // Nếu là SSE endpoint và có token trong query, thêm vào headers
   if (req.path === "/api/messages/sse" && req.query.token && !req.headers.authorization) {
     req.headers.authorization = `Bearer ${req.query.token}`;
   }
@@ -38,7 +36,6 @@ app.use("/api/posts", postRouter);
 app.use("/api/stories", storyRouter);
 app.use("/api/messages", messageRouter);
 
-// Error handling middleware
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;

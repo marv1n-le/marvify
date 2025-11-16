@@ -57,7 +57,6 @@ const ChatBox = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error("Error fetching user:", error);
       toast.error(error.message || "Failed to load user");
       setLoading(false);
     }
@@ -68,7 +67,6 @@ const ChatBox = () => {
       const token = await getToken();
       dispatch(fetchMessages({ token, userId }));
     } catch (error) {
-      console.log(error.message);
       toast.error(error.message);
     }
   };
@@ -89,26 +87,16 @@ const ChatBox = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
-        console.log("✅ Tin nhắn gửi thành công:", data.data);
-        console.log("📤 Message ID:", data.data._id);
-        console.log("📤 Current messages count:", messages.length);
-
         setText("");
         setImage(null);
 
-        // Thêm tin nhắn vào state ngay lập tức
-        // Đảm bảo message có đầy đủ thông tin
         const messageToAdd = {
           ...data.data,
           createdAt: data.data.createdAt || new Date().toISOString(),
         };
 
-        // Thêm tin nhắn vào state ngay lập tức - KHÔNG chờ SSE
         dispatch(addMessage(messageToAdd));
-        console.log("📤 Đã dispatch addMessage với:", messageToAdd);
-        console.log("📤 Messages sau khi dispatch:", messages.length + 1);
 
-        // Force scroll to bottom sau khi thêm tin nhắn
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
@@ -116,12 +104,10 @@ const ChatBox = () => {
         throw new Error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       toast.error(error.message);
     }
   };
 
-  // Fetch user data khi component mount hoặc userId thay đổi
   useEffect(() => {
     if (userId) {
       setLoading(true);
@@ -130,7 +116,6 @@ const ChatBox = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Cũng thử tìm trong connections khi connections được load
   useEffect(() => {
     if (connections.length > 0 && userId && !user) {
       const foundUser = connections.find(
@@ -145,20 +130,15 @@ const ChatBox = () => {
 
   useEffect(() => {
     if (userId) {
-      // Fetch messages ngay khi có userId (không cần chờ user)
-      console.log("🔄 Fetching messages cho userId:", userId);
       fetchUserMessages();
     }
 
     return () => {
-      // Chỉ reset khi unmount hoặc userId thay đổi
-      console.log("🔄 Resetting messages cho userId:", userId);
       dispatch(resetMessages());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]); // Chỉ phụ thuộc vào userId
+  }, [userId]);
 
-  // Memoize sorted messages để tránh re-sort không cần thiết
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);

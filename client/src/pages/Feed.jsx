@@ -26,7 +26,6 @@ const Feed = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error.message);
       toast.error(error.message);
     }
     setLoading(false);
