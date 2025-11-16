@@ -7,28 +7,70 @@ import User from "../models/User.js";
 const connections = {};
 
 // Controller function for the SSE endpoint
-export const sseController = (req, res) => {
-  const { userId } = req.auth();
+export const sseController = async (req, res) => {
+  try {
+    const { userId } = await req.auth();
 
-  console.log("New client connected:", userId);
+    if (!userId) {
+      res.status(401).write("event: error\ndata: Unauthorized\n\n");
+      res.end();
+      return;
+    }
 
-  // Set SSE headers
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+    console.log("New client connected:", userId);
 
-  // Add the client to the connections object
-  connections[userId] = res;
+    // Set SSE headers - QUAN TRỌNG: phải set trước khi write
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable buffering for nginx
 
-  // Send an initial event to the client
-  res.write("log: Connected to SSE endpoint\n\n");
+    // Add the client to the connections object
+    connections[userId] = res;
 
-  res.on("close", () => {
-    //Remove the client's response object from the connections array
-    delete connections[userId];
-    console.log("Client disconnected:", userId);
-  });
+    // Send an initial event to the client
+    res.write("event: connected\ndata: Connected to SSE endpoint\n\n");
+
+    // Send heartbeat để giữ connection alive
+    const heartbeat = setInterval(() => {
+      if (connections[userId]) {
+        try {
+          res.write(": heartbeat\n\n");
+        } catch (error) {
+          console.error("Error sending heartbeat:", error);
+          clearInterval(heartbeat);
+          delete connections[userId];
+        }
+      } else {
+        clearInterval(heartbeat);
+      }
+    }, 30000); // Send heartbeat every 30 seconds
+
+    res.on("close", () => {
+      clearInterval(heartbeat);
+      delete connections[userId];
+      console.log("Client disconnected:", userId);
+    });
+
+    res.on("error", (error) => {
+      console.error("SSE connection error:", error);
+      clearInterval(heartbeat);
+      delete connections[userId];
+    });
+  } catch (error) {
+    console.error("SSE controller error:", error);
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .write(
+          "event: error\ndata: " +
+            JSON.stringify({ message: error.message }) +
+            "\n\n"
+        );
+      res.end();
+    }
+  }
 };
 
 // Send message
@@ -74,15 +116,27 @@ export const sendMessage = async (req, res) => {
 
     // Also send to sender if they have the chat open
     if (connections[userId]) {
-      connections[userId].write(
-        `data: ${JSON.stringify(messageWithUserData)}\n\n`
-      );
+      try {
+        connections[userId].write(
+          `data: ${JSON.stringify(messageWithUserData)}\n\n`
+        );
+        console.log("📤 SSE sent to sender:", userId);
+      } catch (error) {
+        console.error("Error sending SSE to sender:", error);
+        delete connections[userId];
+      }
     }
 
     if (connections[to_user_id]) {
-      connections[to_user_id].write(
-        `data: ${JSON.stringify(messageWithUserData)}\n\n`
-      );
+      try {
+        connections[to_user_id].write(
+          `data: ${JSON.stringify(messageWithUserData)}\n\n`
+        );
+        console.log("📤 SSE sent to receiver:", to_user_id);
+      } catch (error) {
+        console.error("Error sending SSE to receiver:", error);
+        delete connections[to_user_id];
+      }
     }
 
     res.json({

@@ -18,6 +18,16 @@ await connectDB();
 
 app.use(cors());
 app.use(express.json());
+
+// Middleware để xử lý token từ query parameter cho SSE trước khi clerkMiddleware chạy
+app.use((req, res, next) => {
+  // Nếu là SSE endpoint và có token trong query, thêm vào headers
+  if (req.path === "/api/messages/sse" && req.query.token && !req.headers.authorization) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  next();
+});
+
 app.use(clerkMiddleware());
 
 app.get("/", (req, res) => res.send("Server is running properly."));

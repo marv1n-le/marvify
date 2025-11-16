@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { dummyConnectionsData } from "../assets/assets";
 import { Eye, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { useAuth } from "@clerk/clerk-react";
+import { fetchConnections } from "../features/connections/connectionsSlice";
 
 const Messages = () => {
   const { connections } = useSelector((state) => state.connections);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { getToken } = useAuth();
+
+  // Fetch connections khi component mount
+  useEffect(() => {
+    const loadConnections = async () => {
+      try {
+        const token = await getToken();
+        dispatch(fetchConnections(token));
+      } catch (error) {
+        console.error("Error loading connections:", error);
+      }
+    };
+    loadConnections();
+  }, [dispatch, getToken]);
   return (
     <div className="min-h-screen relative bg-slate-50">
       <div className="max-w-6xl mx-auto p-6">

@@ -59,8 +59,21 @@ const messagesSlice = createSlice({
 
       if (!exists) {
         console.log("➕ Thêm tin nhắn mới vào state:", messageId);
+        console.log(
+          "➕ Số lượng messages trước khi thêm:",
+          state.messages.length
+        );
         // Tạo array mới để đảm bảo React detect được thay đổi
         state.messages = [...state.messages, newMessage];
+        console.log(
+          "➕ Số lượng messages sau khi thêm:",
+          state.messages.length
+        );
+        console.log("➕ Message được thêm:", {
+          _id: newMessage._id,
+          text: newMessage.text,
+          from_user_id: newMessage.from_user_id,
+        });
       } else {
         console.log("⚠️ Tin nhắn đã tồn tại, bỏ qua:", messageId);
       }
@@ -71,34 +84,52 @@ const messagesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(fetchMessages.fulfilled, (state, action) => {
-      if (action.payload) {
+      if (action.payload && Array.isArray(action.payload)) {
         console.log(
-          "📥 Fetch messages thành công, số lượng:",
+          "📥 Fetch messages thành công, số lượng từ server:",
           action.payload.length
         );
-        // Merge messages: ưu tiên server data, nhưng giữ lại messages mới trong state
-        const allMessagesMap = new Map();
+        console.log(
+          "📥 Số lượng messages hiện tại trong state:",
+          state.messages.length
+        );
 
-        // Thêm tất cả messages từ server
+        // Tạo map để merge messages
+        const messagesMap = new Map();
+
+        // Thêm tất cả messages từ server trước
         action.payload.forEach((msg) => {
           const id = msg._id?.toString() || msg._id;
           if (id) {
-            allMessagesMap.set(id, msg);
+            messagesMap.set(id, msg);
           }
         });
 
-        // Thêm messages từ state nếu chưa có trong server response (tin nhắn mới vừa gửi)
+        // Sau đó thêm messages từ state nếu chưa có trong server (tin nhắn mới vừa gửi)
         state.messages.forEach((msg) => {
           const id = msg._id?.toString() || msg._id;
-          if (id && !allMessagesMap.has(id)) {
-            allMessagesMap.set(id, msg);
+          if (id && !messagesMap.has(id)) {
+            messagesMap.set(id, msg);
+            console.log("➕ Giữ lại tin nhắn mới từ state:", id);
           }
         });
 
-        state.messages = Array.from(allMessagesMap.values());
+        // Convert map thành array và set vào state
+        const mergedMessages = Array.from(messagesMap.values());
+        state.messages = mergedMessages;
+
         console.log(
-          "📥 Sau khi merge, số lượng messages:",
+          "📥 Sau khi merge, tổng số messages:",
           state.messages.length
+        );
+      } else if (action.payload === null) {
+        // Nếu server trả về null, không làm gì cả (giữ nguyên state)
+        console.log("📥 Server trả về null, giữ nguyên messages trong state");
+      } else {
+        // Nếu payload không hợp lệ, log warning
+        console.warn(
+          "⚠️ fetchMessages.fulfilled với payload không hợp lệ:",
+          action.payload
         );
       }
     });

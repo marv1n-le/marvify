@@ -55,10 +55,30 @@ const App = () => {
             `${import.meta.env.VITE_BASEURL}/api/messages/sse?token=${token}`
           );
 
+          eventSource.addEventListener("connected", (event) => {
+            console.log("✅ SSE Connected:", event.data);
+          });
+
+          eventSource.addEventListener("error", (event) => {
+            console.error("❌ SSE Error event:", event.data);
+          });
+
+          eventSource.onopen = () => {
+            console.log("✅ SSE Connection opened");
+          };
+
           eventSource.onmessage = (event) => {
             try {
+              // Skip heartbeat
+              if (event.data === "" || event.data.startsWith(":")) {
+                return;
+              }
+
               // Skip initial connection message
-              if (event.data.startsWith("log:")) {
+              if (
+                event.data.startsWith("log:") ||
+                event.data === "Connected to SSE endpoint"
+              ) {
                 console.log("✅ SSE Connected:", event.data);
                 return;
               }
@@ -76,18 +96,33 @@ const App = () => {
               );
               const currentUserId = userData?._id;
 
-              // Thêm tin nhắn nếu đang ở trong chat với sender hoặc receiver
-              // (tức là tin nhắn liên quan đến cuộc trò chuyện hiện tại)
-              const isRelevantToCurrentChat =
-                currentChatUserId === senderId ||
-                currentChatUserId === receiverId;
+              console.log("🔍 SSE Debug:", {
+                senderId,
+                receiverId,
+                currentChatUserId,
+                currentUserId,
+                pathname: pathnameRef.current,
+              });
 
-              if (isRelevantToCurrentChat) {
+              // Thêm tin nhắn nếu:
+              // 1. Đang ở trong chat với sender (nhận tin nhắn từ người khác)
+              // 2. Đang ở trong chat với receiver và mình là sender (gửi tin nhắn)
+              const isInChatWithSender = currentChatUserId === senderId;
+              const isInChatWithReceiver = currentChatUserId === receiverId;
+              const isMessageFromMe = senderId === currentUserId;
+              const isMessageToCurrentChat = receiverId === currentChatUserId;
+
+              const shouldAddMessage =
+                (isInChatWithSender && !isMessageFromMe) ||
+                (isInChatWithReceiver && isMessageFromMe) ||
+                (isMessageToCurrentChat && isMessageFromMe);
+
+              if (shouldAddMessage) {
+                console.log("✅ Thêm tin nhắn vào state qua SSE");
                 dispatch(addMessage(message));
               } else {
-                // bạn có thể thêm notification ở đây
                 console.log(
-                  "📬 Tin nhắn từ người khác, có thể hiển thị notification"
+                  "📬 Tin nhắn không liên quan đến chat hiện tại, bỏ qua"
                 );
               }
             } catch (error) {
@@ -97,7 +132,13 @@ const App = () => {
 
           eventSource.onerror = (e) => {
             console.error("❌ Lỗi SSE:", e);
+            console.error("❌ SSE readyState:", eventSource.readyState);
+            console.error("❌ SSE URL:", eventSource.url);
+
             if (eventSource.readyState === EventSource.CLOSED) {
+              console.log(
+                "🔄 SSE connection closed, sẽ reconnect sau 3 giây..."
+              );
               // Reconnect after 3 seconds
               reconnectTimeout = setTimeout(() => {
                 if (eventSource) {
@@ -105,6 +146,10 @@ const App = () => {
                 }
                 connectSSE();
               }, 3000);
+            } else if (eventSource.readyState === EventSource.CONNECTING) {
+              console.log("🔄 SSE đang kết nối...");
+            } else if (eventSource.readyState === EventSource.OPEN) {
+              console.log("✅ SSE connection is open");
             }
           };
         } catch (error) {

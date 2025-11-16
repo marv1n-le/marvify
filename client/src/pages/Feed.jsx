@@ -32,6 +32,10 @@ const Feed = () => {
     setLoading(false);
   };
 
+  const handleDeletePost = (postId) => {
+    setFeeds((prevFeeds) => prevFeeds.filter((post) => post._id !== postId));
+  };
+
   useEffect(() => {
     fetchFeeds();
   }, []);
@@ -43,7 +47,7 @@ const Feed = () => {
         <StoriesBar />
         <div className="p-4 space-y-6">
           {feeds.map((post) => (
-            <PostCard key={post._id} post={post} />
+            <PostCard key={post._id} post={post} onDelete={handleDeletePost} />
           ))}
         </div>
       </div>

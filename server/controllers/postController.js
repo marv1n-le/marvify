@@ -98,3 +98,30 @@ export const likePost = async (req, res, next) => {
     next(error);
   }
 };
+
+// Delete post
+export const deletePost = async (req, res, next) => {
+  try {
+    const { userId } = req.auth();
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    // Check if user owns the post
+    if (post.user.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "You can only delete your own posts" });
+    }
+
+    await Post.findByIdAndDelete(postId);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Post deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
