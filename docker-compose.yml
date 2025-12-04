@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  marvify_api:
+    build: ./server
+    container_name: marvify_api
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    ports:
+      - "3000:3000"
+    networks:
+      - marvify_net
+
+  marvify_static:
+    build: ./client
+    container_name: marvify_static
+    restart: unless-stopped
+    ports:
+      - "8083:80"
+    networks:
+      - marvify_net
+
+networks:
+  marvify_net:
+    driver: bridge

@@ -1,53 +1,15 @@
-name: CI/CD for Marvify
-
+name: Deploy Marvify
 on:
   push:
     branches:
       - main
 
 jobs:
-  build-and-test:
-    name: Build & Test (FE + BE)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Cache Node modules globally
-      - name: Cache Node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-node-
-
-      # Install dependencies for backend
-      - name: Install Backend dependencies
-        run: |
-          cd server
-          npm ci
-
-      # Install dependencies for frontend
-      - name: Install Frontend dependencies
-        run: |
-          cd client
-          npm ci
-
-      # Build frontend
-      - name: Build Frontend
-        run: |
-          cd client
-          npm run build
-          
   deploy:
-    name: Deploy to VPS
-
     runs-on: ubuntu-latest
-    needs: build-and-test
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup SSH
@@ -57,33 +19,9 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-          set -e  # stop if any command fails
-
-          echo "📦 Pulling latest code..."
-          cd /var/www/marvify
-          git reset --hard
-          git pull origin main
-
-          echo "🔧 Load Node environment..."
-          source ~/.nvm/nvm.sh
-          nvm use 22
-
-          echo "🚀 Backend: updating..."
-          cd server
-          npm ci
-          pm2 reload marvify-server --update-env || pm2 start server.js --name marvify-server
-
-          echo "🎨 Frontend: building..."
-          cd ../client
-          npm ci
-          npm run build
-
-          echo "🌐 Updating static site..."
-          docker ps -q --filter "name=marvify_static" && docker restart marvify_static || \
-            docker run -d --name marvify_static \
-              -v /var/www/marvify/client/dist:/usr/share/nginx/html \
-              -p 8083:80 nginx:alpine
-
-          echo "✅ Deployment completed successfully!"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /var/www/marvify
+            git pull origin main
+            docker compose down
+            docker compose up -d --build
           EOF
